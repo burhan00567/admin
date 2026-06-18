@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>Order Admin Panel</title>
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family: Arial, sans-serif;
+}
+body{
+    background: linear-gradient(135deg, #eef2ff, #f8fafc);
+    padding-bottom: 30px;
+    color:#1f2937;
+}
+
+/* ===== LOGIN SCREEN ===== */
+#loginScreen{
+    position:fixed;
+    inset:0;
+    background: linear-gradient(135deg, #4f46e5, #2563eb);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:5000;
+    padding:20px;
+}
+
+.login-box{
+    background:white;
+    border-radius:20px;
+    padding:32px 26px;
+    width:100%;
+    max-width:360px;
+    box-shadow:0 12px 40px rgba(0,0,0,0.25);
+    text-align:center;
+}
+
+.login-box .icon{
+    font-size:46px;
+    margin-bottom:10px;
+}
+
+.login-box h2{
+    font-size:20px;
+    color:#111827;
+    margin-bottom:6px;
+}
+
+.login-box p{
+    color:#6b7280;
+    font-size:13px;
+    margin-bottom:20px;
+}
+
+.login-box input{
+    width:100%;
+    padding:14px;
+    border-radius:10px;
+    border:2px solid #e5e7eb;
+    font-size:16px;
+    outline:none;
+    margin-bottom:14px;
+}
+
+.login-box input:focus{
+    border-color:#6366f1;
+}
+
+.login-box button{
+    width:100%;
+    padding:14px;
+    background: linear-gradient(135deg, #6366f1, #3b82f6);
+    color:white;
+    border:none;
+    border-radius:10px;
+    font-size:16px;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+.login-box button:hover{
+    background: linear-gradient(135deg, #4f46e5, #2563eb);
+}
+
+.login-error{
+    color:#dc2626;
+    font-size:13px;
+    margin-top:10px;
+    display:none;
+}
+
+/* ===== TOP BAR ===== */
+.top-bar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    background:white;
+    padding:16px 18px;
+    border-bottom:2px solid #e5e7eb;
+}
+
+.top-bar h2{
+    font-size:18px;
+    color:#111827;
+}
+
+.top-bar-actions{
+    display:flex;
+    gap:8px;
+}
+
+.icon-btn{
+    padding:9px 14px;
+    border:none;
+    border-radius:8px;
+    font-size:13px;
+    font-weight:bold;
+    cursor:pointer;
+    transition:0.2s;
+}
+
+.refresh-btn{
+    background: linear-gradient(135deg, #6366f1, #3b82f6);
+    color:white;
+}
+.refresh-btn:hover{ transform:scale(1.04); }
+
+.logout-btn{
+    background:#e5e7eb;
+    color:#111827;
+}
+.logout-btn:hover{ background:#d1d5db; }
+
+/* ===== CONTAINER ===== */
+.container{ padding:15px; }
+
+/* ===== STATS ===== */
+.stats-grid{
+    display:grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap:10px;
+    margin-bottom:15px;
+}
+
+.stat-card{
+    background:white;
+    border-radius:16px;
+    padding:16px;
+    text-align:center;
+    box-shadow:0 6px 16px rgba(0,0,0,0.06);
+}
+
+.stat-card h3{
+    font-size:26px;
+    color:#111827;
+    margin-bottom:4px;
+}
+
+.stat-card p{
+    font-size:12px;
+    color:#6b7280;
+}
+
+.stat-card.pending h3{ color:#d97706; }
+.stat-card.delivered h3{ color:#059669; }
+.stat-card.revenue h3{ color:#4f46e5; }
+.stat-card.cancelled h3{ color:#dc2626; }
+
+/* ===== FILTER BAR ===== */
+.filter-bar{
+    display:flex;
+    gap:8px;
+    margin-bottom:15px;
+    flex-wrap:wrap;
+}
+
+.filter-bar input[type="text"]{
+    flex:1;
+    min-width:140px;
+    padding:12px 14px;
+    border-radius:10px;
+    border:2px solid #e5e7eb;
+    font-size:15px;
+    outline:none;
+}
+.filter-bar input[type="text"]:focus{ border-color:#6366f1; }
+
+.filter-bar select{
+    padding:12px 14px;
+    border-radius:10px;
+    border:2px solid #e5e7eb;
+    font-size:14px;
+    font-weight:bold;
+    background:white;
+}
+
+/* ===== TABLE ===== */
+.table-container{
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    border-radius:14px;
+    background:white;
+    box-shadow:0 6px 16px rgba(0,0,0,0.06);
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    min-width:1100px;
+}
+
+th,td{
+    border:1px solid #e5e7eb;
+    padding:11px 9px;
+    text-align:center;
+    font-size:13px;
+    white-space:nowrap;
+}
+
+th{
+    background: linear-gradient(135deg, #e0e7ff, #f1f5f9);
+    font-weight:bold;
+    position:sticky;
+    top:0;
+}
+
+td.address-cell, td.note-cell{
+    white-space:normal;
+    max-width:180px;
+    text-align:left;
+    font-size:12px;
+}
+
+.status-badge{
+    padding:5px 12px;
+    border-radius:30px;
+    font-size:11px;
+    font-weight:bold;
+    display:inline-block;
+}
+
+.status-pending{ background:#fef3c7; color:#92400e; }
+.status-delivered{ background:#d1fae5; color:#065f46; }
+.status-cancelled{ background:#fee2e2; color:#991b1b; }
+
+.action-cell{
+    display:flex;
+    gap:5px;
+    justify-content:center;
+}
+
+.act-btn{
+    padding:6px 10px;
+    border:none;
+    border-radius:6px;
+    font-size:11px;
+    font-weight:bold;
+    cursor:pointer;
+    color:white;
+    transition:0.2s;
+    white-space:nowrap;
+}
+
+.act-deliver{ background: linear-gradient(135deg, #10b981, #059669); }
+.act-deliver:hover{ transform:scale(1.05); }
+
+.act-cancel{ background: linear-gradient(135deg, #f59e0b, #d97706); }
+.act-cancel:hover{ transform:scale(1.05); }
+
+.act-delete{ background: linear-gradient(135deg, #ef4444, #dc2626); }
+.act-delete:hover{ transform:scale(1.05); }
+
+.empty-row td{
+    text-align:center;
+    padding:30px;
+    color:#6b7280;
+    font-size:14px;
+    white-space:normal;
+}
+
+/* ===== LOADER ===== */
+#loader{
+    position:fixed;
+    inset:0;
+    background:white;
+    z-index:4000;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+}
+
+.spinner{
+    width:50px;
+    height:50px;
+    border:5px solid #ddd;
+    border-top:5px solid #3b82f6;
+    border-radius:50%;
+    animation:spin 1s linear infinite;
+}
+
+@keyframes spin{ 100%{ transform:rotate(360deg); } }
+
+@media (min-width:640px){
+    .stats-grid{ grid-template-columns: repeat(4, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== LOGIN SCREEN ===== -->
+<div id="loginScreen">
+    <div class="login-box">
+        <div class="icon">🔐</div>
+        <h2>Admin Panel লগইন</h2>
+        <p>অর্ডার দেখতে পাসওয়ার্ড দিন</p>
+        <input type="password" id="adminPasswordInput" placeholder="পাসওয়ার্ড" autocomplete="off">
+        <button onclick="tryLogin()">লগইন করুন</button>
+        <div class="login-error" id="loginError">❌ পাসওয়ার্ড ভুল হয়েছে</div>
+    </div>
+</div>
+
+<!-- ===== LOADER ===== -->
+<div id="loader" style="display:none;">
+    <div class="spinner"></div>
+    <p style="margin-top:12px;">Loading orders...</p>
+</div>
+
+<!-- ===== MAIN PANEL ===== -->
+<div id="mainPanel" style="display:none;">
+
+    <div class="top-bar">
+        <h2>📊 Order Admin Panel</h2>
+        <div class="top-bar-actions">
+            <button class="icon-btn refresh-btn" onclick="loadOrders()">🔄 রিফ্রেশ</button>
+            <button class="icon-btn logout-btn" onclick="logout()">🚪 লগআউট</button>
+        </div>
+    </div>
+
+    <div class="container">
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3 id="statTotal">0</h3>
+                <p>মোট অর্ডার</p>
+            </div>
+            <div class="stat-card pending">
+                <h3 id="statPending">0</h3>
+                <p>⏳ পেন্ডিং</p>
+            </div>
+            <div class="stat-card delivered">
+                <h3 id="statDelivered">0</h3>
+                <p>✅ ডেলিভার্ড</p>
+            </div>
+            <div class="stat-card revenue">
+                <h3 id="statRevenue">৳0</h3>
+                <p>মোট মূল্য (বাতিল ছাড়া)</p>
+            </div>
+        </div>
+
+        <div class="filter-bar">
+            <input type="text" id="searchInput" placeholder="🔍 নাম বা মোবাইল দিয়ে সার্চ করুন">
+            <select id="statusFilter">
+                <option value="all">সব স্ট্যাটাস</option>
+                <option value="pending">⏳ পেন্ডিং</option>
+                <option value="delivered">✅ ডেলিভার্ড</option>
+                <option value="cancelled">❌ বাতিল</option>
+            </select>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>তারিখ/সময়</th>
+                        <th>নাম</th>
+                        <th>মোবাইল</th>
+                        <th>ঠিকানা</th>
+                        <th>সংগ্রহস্থল</th>
+                        <th>পণ্য</th>
+                        <th>পরিমাণ</th>
+                        <th>ডেলিভারি চার্জ</th>
+                        <th>মোট মূল্য</th>
+                        <th>নোট</th>
+                        <th>স্ট্যাটাস</th>
+                        <th>অ্যাকশন</th>
+                    </tr>
+                </thead>
+                <tbody id="ordersTableBody"></tbody>
+            </table>
+        </div>
+
+    </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, getDocs, updateDoc, deleteDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+// ⚠️ একই Firebase project (hishab-f5039) ব্যবহার করা হচ্ছে, কিন্তু কালেকশন
+// সম্পূর্ণ আলাদা ("online_orders") — বিজনেস ম্যানেজারের কোনো ডেটার সাথে এর সংযোগ নেই।
+const firebaseConfig = {
+    apiKey: "AIzaSyBvoJkTeAErHbU9IC9PYKlMvbWt_0vmMwg",
+    authDomain: "hishab-f5039.firebaseapp.com",
+    projectId: "hishab-f5039",
+    storageBucket: "hishab-f5039.firebasestorage.app",
+    messagingSenderId: "653131584820",
+    appId: "1:653131584820:web:11e271e93c92a533e98161"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const ORDERS_COLLECTION = "online_orders";
+
+// ⚠️ এই পাসওয়ার্ডটি অবশ্যই পরিবর্তন করে নিজের মতো গোপন একটা পাসওয়ার্ড দিয়ে দিন
+const ADMIN_PASSWORD = "admin786";
+
+let allOrders = [];
+let isLoggedIn = false;
+
+window.tryLogin = function () {
+    const val = document.getElementById("adminPasswordInput").value;
+    const errorBox = document.getElementById("loginError");
+    if (val === ADMIN_PASSWORD) {
+        isLoggedIn = true;
+        document.getElementById("loginScreen").style.display = "none";
+        document.getElementById("mainPanel").style.display = "block";
+        errorBox.style.display = "none";
+        loadOrders();
+    } else {
+        errorBox.style.display = "block";
+    }
+};
+
+document.getElementById("adminPasswordInput").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") window.tryLogin();
+});
+
+window.logout = function () {
+    isLoggedIn = false;
+    document.getElementById("mainPanel").style.display = "none";
+    document.getElementById("loginScreen").style.display = "flex";
+    document.getElementById("adminPasswordInput").value = "";
+};
+
+window.loadOrders = async function () {
+    document.getElementById("loader").style.display = "flex";
+    try {
+        const q = query(collection(db, ORDERS_COLLECTION), orderBy("timestamp", "desc"));
+        const snap = await getDocs(q);
+        allOrders = [];
+        snap.forEach(ds => {
+            const d = ds.data();
+            allOrders.push({ firebaseId: ds.id, ...d });
+        });
+        renderOrders();
+    } catch (e) {
+        console.error(e);
+        alert("অর্ডার লোড করতে সমস্যা হয়েছে: " + e.message);
+    } finally {
+        document.getElementById("loader").style.display = "none";
+    }
+};
+
+function updateStats(list) {
+    const total = list.length;
+    const pending = list.filter(o => o.status === "pending").length;
+    const delivered = list.filter(o => o.status === "delivered").length;
+    const revenue = list
+        .filter(o => o.status !== "cancelled")
+        .reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0);
+
+    document.getElementById("statTotal").innerText = total;
+    document.getElementById("statPending").innerText = pending;
+    document.getElementById("statDelivered").innerText = delivered;
+    document.getElementById("statRevenue").innerText = "৳" + revenue.toLocaleString();
+}
+
+function statusLabel(status) {
+    if (status === "delivered") return '<span class="status-badge status-delivered">✅ ডেলিভার্ড</span>';
+    if (status === "cancelled") return '<span class="status-badge status-cancelled">❌ বাতিল</span>';
+    return '<span class="status-badge status-pending">⏳ পেন্ডিং</span>';
+}
+
+function renderOrders() {
+    updateStats(allOrders);
+
+    const searchVal = document.getElementById("searchInput").value.trim().toLowerCase();
+    const statusVal = document.getElementById("statusFilter").value;
+
+    let filtered = allOrders.filter(o => {
+        const matchesSearch = !searchVal ||
+            (o.name || "").toLowerCase().includes(searchVal) ||
+            (o.phone || "").toLowerCase().includes(searchVal);
+        const matchesStatus = statusVal === "all" || o.status === statusVal;
+        return matchesSearch && matchesStatus;
+    });
+
+    const tbody = document.getElementById("ordersTableBody");
+    tbody.innerHTML = "";
+
+    if (filtered.length === 0) {
+        const tr = document.createElement("tr");
+        tr.className = "empty-row";
+        tr.innerHTML = `<td colspan="12">কোনো অর্ডার পাওয়া যায়নি</td>`;
+        tbody.appendChild(tr);
+        return;
+    }
+
+    filtered.forEach(o => {
+        const tr = document.createElement("tr");
+
+        const addressText = [o.district, o.thana, o.address].filter(Boolean).join(", ");
+
+        tr.innerHTML = `
+            <td>${o.createdAt || "-"}</td>
+            <td>${o.name || "-"}</td>
+            <td>${o.phone || "-"}</td>
+            <td class="address-cell">${addressText || "-"}</td>
+            <td class="address-cell">${o.pickupPoint || "-"}</td>
+            <td>${o.product || "-"}</td>
+            <td>${o.qty || 0}</td>
+            <td>৳${(o.deliveryCharge || 0).toLocaleString()}</td>
+            <td><b>৳${(o.totalPrice || 0).toLocaleString()}</b></td>
+            <td class="note-cell">${o.note || "-"}</td>
+            <td>${statusLabel(o.status)}</td>
+            <td class="action-cell"></td>
+        `;
+
+        const actionCell = tr.querySelector(".action-cell");
+
+        if (o.status === "pending") {
+            const deliverBtn = document.createElement("button");
+            deliverBtn.className = "act-btn act-deliver";
+            deliverBtn.innerText = "✅ ডেলিভার্ড";
+            deliverBtn.onclick = () => updateStatus(o, "delivered");
+            actionCell.appendChild(deliverBtn);
+
+            const cancelBtn = document.createElement("button");
+            cancelBtn.className = "act-btn act-cancel";
+            cancelBtn.innerText = "❌ বাতিল";
+            cancelBtn.onclick = () => updateStatus(o, "cancelled");
+            actionCell.appendChild(cancelBtn);
+        }
+
+        const delBtn = document.createElement("button");
+        delBtn.className = "act-btn act-delete";
+        delBtn.innerText = "🗑️ ডিলিট";
+        delBtn.onclick = () => deleteOrder(o);
+        actionCell.appendChild(delBtn);
+
+        tbody.appendChild(tr);
+    });
+}
+
+async function updateStatus(order, newStatus) {
+    try {
+        await updateDoc(doc(db, ORDERS_COLLECTION, order.firebaseId), { status: newStatus });
+        order.status = newStatus;
+        renderOrders();
+    } catch (e) {
+        alert("আপডেট করতে সমস্যা: " + e.message);
+    }
+}
+
+async function deleteOrder(order) {
+    if (!confirm(`"${order.name}" এর অর্ডার ডিলিট করবেন?`)) return;
+    try {
+        await deleteDoc(doc(db, ORDERS_COLLECTION, order.firebaseId));
+        allOrders = allOrders.filter(o => o.firebaseId !== order.firebaseId);
+        renderOrders();
+    } catch (e) {
+        alert("ডিলিট করতে সমস্যা: " + e.message);
+    }
+}
+
+document.getElementById("searchInput").addEventListener("input", renderOrders);
+document.getElementById("statusFilter").addEventListener("change", renderOrders);
+</script>
+
+</body>
+</html>
