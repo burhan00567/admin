@@ -101,6 +101,7 @@ body{
     background:white;
     padding:16px 18px;
     border-bottom:2px solid #e5e7eb;
+    position:relative;
 }
 
 .top-bar h2{
@@ -111,6 +112,8 @@ body{
 .top-bar-actions{
     display:flex;
     gap:8px;
+    align-items:center;
+    position:relative;
 }
 
 .icon-btn{
@@ -135,6 +138,55 @@ body{
 }
 .logout-btn:hover{ background:#d1d5db; }
 
+/* ===== THREE-DOT MENU ===== */
+.menu-btn{
+    width:38px;
+    height:38px;
+    border:none;
+    border-radius:8px;
+    background:#e5e7eb;
+    font-size:18px;
+    font-weight:bold;
+    cursor:pointer;
+    color:#111827;
+    line-height:1;
+}
+.menu-btn:hover{ background:#d1d5db; }
+
+.dropdown-menu{
+    position:absolute;
+    top:46px;
+    right:0;
+    background:white;
+    border-radius:12px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.18);
+    min-width:220px;
+    display:none;
+    overflow:hidden;
+    z-index:2000;
+    border:1px solid #e5e7eb;
+}
+.dropdown-menu.show{ display:block; }
+
+.dropdown-menu button{
+    width:100%;
+    text-align:right;
+    padding:13px 16px;
+    background:white;
+    border:none;
+    border-bottom:1px solid #f1f5f9;
+    font-size:14px;
+    font-weight:600;
+    color:#1f2937;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    gap:8px;
+}
+.dropdown-menu button:last-child{ border-bottom:none; }
+.dropdown-menu button:hover{ background:#f3f4f6; }
+
 /* ===== CONTAINER ===== */
 .container{ padding:15px; }
 
@@ -149,13 +201,13 @@ body{
 .stat-card{
     background:white;
     border-radius:16px;
-    padding:16px;
+    padding:18px;
     text-align:center;
     box-shadow:0 6px 16px rgba(0,0,0,0.06);
 }
 
 .stat-card h3{
-    font-size:26px;
+    font-size:28px;
     color:#111827;
     margin-bottom:4px;
 }
@@ -165,10 +217,7 @@ body{
     color:#6b7280;
 }
 
-.stat-card.pending h3{ color:#d97706; }
-.stat-card.delivered h3{ color:#059669; }
 .stat-card.revenue h3{ color:#4f46e5; }
-.stat-card.cancelled h3{ color:#dc2626; }
 
 /* ===== FILTER BAR ===== */
 .filter-bar{
@@ -306,7 +355,7 @@ td.address-cell, td.note-cell{
 @keyframes spin{ 100%{ transform:rotate(360deg); } }
 
 @media (min-width:640px){
-    .stats-grid{ grid-template-columns: repeat(4, 1fr); }
+    .stats-grid{ grid-template-columns: repeat(2, 1fr); max-width:520px; }
 }
 </style>
 </head>
@@ -338,6 +387,11 @@ td.address-cell, td.note-cell{
         <div class="top-bar-actions">
             <button class="icon-btn refresh-btn" onclick="loadOrders()">🔄 রিফ্রেশ</button>
             <button class="icon-btn logout-btn" onclick="logout()">🚪 লগআউট</button>
+            <button class="menu-btn" id="menuBtn" title="আরও অপশন">⋮</button>
+            <div class="dropdown-menu" id="dropdownMenu">
+                <button onclick="downloadExcel()">📊 এক্সেল/সিএসভি ডাউনলোড</button>
+                <button onclick="downloadPDF()">📄 পিডিএফ ডাউনলোড</button>
+            </div>
         </div>
     </div>
 
@@ -347,14 +401,6 @@ td.address-cell, td.note-cell{
             <div class="stat-card">
                 <h3 id="statTotal">0</h3>
                 <p>মোট অর্ডার</p>
-            </div>
-            <div class="stat-card pending">
-                <h3 id="statPending">0</h3>
-                <p>⏳ পেন্ডিং</p>
-            </div>
-            <div class="stat-card delivered">
-                <h3 id="statDelivered">0</h3>
-                <p>✅ ডেলিভার্ড</p>
             </div>
             <div class="stat-card revenue">
                 <h3 id="statRevenue">৳0</h3>
@@ -400,6 +446,9 @@ td.address-cell, td.note-cell{
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, getDocs, updateDoc, deleteDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import * as XLSX from "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/+esm";
+import { jsPDF } from "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/+esm";
+import autoTable from "https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/+esm";
 
 // ⚠️ একই Firebase project (hishab-f5039) ব্যবহার করা হচ্ছে, কিন্তু কালেকশন
 // সম্পূর্ণ আলাদা ("online_orders") — বিজনেস ম্যানেজারের কোনো ডেটার সাথে এর সংযোগ নেই।
@@ -468,15 +517,11 @@ window.loadOrders = async function () {
 
 function updateStats(list) {
     const total = list.length;
-    const pending = list.filter(o => o.status === "pending").length;
-    const delivered = list.filter(o => o.status === "delivered").length;
     const revenue = list
         .filter(o => o.status !== "cancelled")
         .reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0);
 
     document.getElementById("statTotal").innerText = total;
-    document.getElementById("statPending").innerText = pending;
-    document.getElementById("statDelivered").innerText = delivered;
     document.getElementById("statRevenue").innerText = "৳" + revenue.toLocaleString();
 }
 
@@ -486,19 +531,23 @@ function statusLabel(status) {
     return '<span class="status-badge status-pending">⏳ পেন্ডিং</span>';
 }
 
-function renderOrders() {
-    updateStats(allOrders);
-
+function getFilteredOrders() {
     const searchVal = document.getElementById("searchInput").value.trim().toLowerCase();
     const statusVal = document.getElementById("statusFilter").value;
 
-    let filtered = allOrders.filter(o => {
+    return allOrders.filter(o => {
         const matchesSearch = !searchVal ||
             (o.name || "").toLowerCase().includes(searchVal) ||
             (o.phone || "").toLowerCase().includes(searchVal);
         const matchesStatus = statusVal === "all" || o.status === statusVal;
         return matchesSearch && matchesStatus;
     });
+}
+
+function renderOrders() {
+    updateStats(allOrders);
+
+    const filtered = getFilteredOrders();
 
     const tbody = document.getElementById("ordersTableBody");
     tbody.innerHTML = "";
@@ -580,7 +629,83 @@ async function deleteOrder(order) {
 
 document.getElementById("searchInput").addEventListener("input", renderOrders);
 document.getElementById("statusFilter").addEventListener("change", renderOrders);
+
+// ===== THREE-DOT MENU =====
+const menuBtn = document.getElementById("menuBtn");
+const dropdownMenu = document.getElementById("dropdownMenu");
+
+menuBtn.addEventListener("click", function (e) {
+    e.stopPropagation();
+    dropdownMenu.classList.toggle("show");
+});
+
+document.addEventListener("click", function () {
+    dropdownMenu.classList.remove("show");
+});
+
+// ===== EXPORT: helper to build a plain row list from ALL orders (not just filtered) =====
+function buildExportRows() {
+    const statusText = { pending: "পেন্ডিং", delivered: "ডেলিভার্ড", cancelled: "বাতিল" };
+    return allOrders.map(o => ({
+        "তারিখ/সময়": o.createdAt || "-",
+        "নাম": o.name || "-",
+        "মোবাইল": o.phone || "-",
+        "জেলা": o.district || "-",
+        "থানা": o.thana || "-",
+        "ঠিকানা": o.address || "-",
+        "সংগ্রহস্থল": o.pickupPoint || "-",
+        "পণ্য": o.product || "-",
+        "পরিমাণ": o.qty || 0,
+        "একক মূল্য": o.unitPrice || 0,
+        "ডেলিভারি চার্জ": o.deliveryCharge || 0,
+        "মোট মূল্য": o.totalPrice || 0,
+        "নোট": o.note || "-",
+        "স্ট্যাটাস": statusText[o.status] || o.status || "-"
+    }));
+}
+
+// ===== EXPORT: Excel / CSV (.xlsx file, opens fine in Excel/Sheets) =====
+window.downloadExcel = function () {
+    if (!allOrders.length) { alert("ডাউনলোড করার মতো কোনো অর্ডার নেই।"); return; }
+    dropdownMenu.classList.remove("show");
+
+    const rows = buildExportRows();
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws["!cols"] = Object.keys(rows[0]).map(() => ({ wch: 18 }));
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Orders");
+
+    const dateStr = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `orders_${dateStr}.xlsx`);
+};
+
+// ===== EXPORT: PDF (table of all orders) =====
+window.downloadPDF = function () {
+    if (!allOrders.length) { alert("ডাউনলোড করার মতো কোনো অর্ডার নেই।"); return; }
+    dropdownMenu.classList.remove("show");
+
+    const rows = buildExportRows();
+    const head = [Object.keys(rows[0])];
+    const body = rows.map(r => Object.values(r));
+
+    const docPdf = new jsPDF({ orientation: "landscape", unit: "pt" });
+    docPdf.setFontSize(14);
+    docPdf.text("Order Report - " + new Date().toLocaleDateString(), 40, 30);
+
+    autoTable(docPdf, {
+        head: head,
+        body: body,
+        startY: 45,
+        styles: { fontSize: 7, cellPadding: 3 },
+        headStyles: { fillColor: [79, 70, 229] },
+        margin: { left: 30, right: 30 }
+    });
+
+    const dateStr = new Date().toISOString().slice(0, 10);
+    docPdf.save(`orders_${dateStr}.pdf`);
+};
 </script>
 
 </body>
-</html>
+    </html>
